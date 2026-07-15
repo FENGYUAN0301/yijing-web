@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全能易经算</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", "SimSun", sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #eee;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        h1 {
+            text-align: center; font-size: 2.5em; margin-bottom: 10px;
+            background: linear-gradient(45deg, #ffd700, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .subtitle { text-align: center; color: #aaa; margin-bottom: 30px; font-size: 0.9em; }
+
+        .data-status {
+            background: rgba(255,255,255,0.05); border-radius: 12px; padding: 15px 20px;
+            margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 10px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .status-item { display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .status-ok { background: #00ff88; box-shadow: 0 0 8px #00ff88; }
+        .status-err { background: #ff4444; box-shadow: 0 0 8px #ff4444; }
+        .status-loading { background: #ffaa00; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .upload-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2); border: none; color: white;
+            padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: transform 0.2s;
+        }
+        .upload-btn:hover { transform: translateY(-2px); }
+        input[type="file"] { display: none; }
+
+        .nav-tabs {
+            display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap;
+            background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px;
+        }
+        .nav-tab {
+            padding: 12px 24px; background: rgba(255,255,255,0.08); border: none;
+            color: #ccc; cursor: pointer; border-radius: 8px; transition: all 0.3s;
+            font-size: 1em; position: relative; overflow: hidden;
+        }
+        .nav-tab:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .nav-tab.active {
+            background: linear-gradient(45deg, #667eea, #764ba2); color: white;
+            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+        }
+        .nav-tab .badge {
+            position: absolute; top: 2px; right: 2px; background: #ff4444; color: white;
+            font-size: 0.6em; padding: 1px 4px; border-radius: 4px; display: none;
+        }
+        .nav-tab.need-net .badge { display: block; }
+
+        .panel {
+            display: none; background: rgba(255,255,255,0.05); border-radius: 16px;
+            padding: 25px; border: 1px solid rgba(255,255,255,0.1); animation: fadeIn 0.3s ease;
+        }
+        .panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .panel h2 {
+            color: #ffd700; margin-bottom: 20px; font-size: 1.5em;
+            border-bottom: 2px solid rgba(255,215,0,0.3); padding-bottom: 10px;
+        }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #aaa; font-size: 0.9em; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px 15px; background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff;
+            font-size: 1em; transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none; border-color: #667eea; box-shadow: 0 0 10px rgba(102,126,234,0.3);
+        }
+        .form-row { display: flex; gap: 15px; flex-wrap: wrap; }
+        .form-row .form-group { flex: 1; min-width: 200px; }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2); border: none; color: white;
+            padding: 12px 30px; border-radius: 8px; cursor: pointer; font-size: 1em;
+            transition: all 0.3s; margin-top: 10px;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,0.4); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .result-box {
+            background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px;
+            margin-top: 20px; border-left: 4px solid #ffd700; display: none;
+        }
+        .result-box.show { display: block; animation: fadeIn 0.5s ease; }
+        .result-box h3 { color: #ffd700; margin-bottom: 15px; }
+        .result-box .content { line-height: 1.8; color: #ddd; }
+
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 16px;
+            padding: 30px; max-width: 500px; width: 90%; border: 1px solid rgba(255,255,255,0.2); text-align: center;
+        }
+        .modal h3 { color: #ffd700; margin-bottom: 15px; }
+        .modal p { color: #ccc; line-height: 1.6; margin-bottom: 20px; }
+        .modal-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2); border: none; color: white;
+            padding: 10px 25px; border-radius: 6px; cursor: pointer;
+        }
+
+        .city-suggestions {
+            position: absolute; background: #1a1a2e; border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100; display: none; width: 100%;
+        }
+        .city-suggestions.show { display: block; }
+        .city-suggestion-item { padding: 8px 15px; cursor: pointer; transition: background 0.2s; }
+        .city-suggestion-item:hover { background: rgba(102,126,234,0.3); }
+        .city-input-wrapper { position: relative; }
+
+        .info-tip {
+            background: rgba(255,215,0,0.1); border-left: 3px solid #ffd700;
+            padding: 10px 15px; margin: 10px 0; border-radius: 0 8px 8px 0;
+            font-size: 0.9em; color: #ccc;
+        }
+        .error-tip { background: rgba(255,68,68,0.1); border-left: 3px solid #ff4444; }
+
+        /* 八字排盘样式 */
+        .bazi-main-title {
+            text-align: center; font-size: 1.8em; margin-bottom: 5px; letter-spacing: 8px;
+        }
+        .bazi-kongwang {
+            text-align: center; color: #888; font-size: 0.9em; margin-bottom: 20px;
+        }
+        .bazi-kongwang span { margin: 0 10px; }
+        .bazi-kongwang .kw-label { color: #666; }
+        .bazi-kongwang .kw-value { color: #ff6b6b; font-weight: bold; }
+
+        .bazi-table-container {
+            display: flex; justify-content: center; margin: 20px 0;
+        }
+        .bazi-table {
+            border-collapse: collapse; font-size: 1.1em;
+        }
+        .bazi-table th, .bazi-table td {
+            padding: 8px 16px; text-align: center; border: 1px solid rgba(255,255,255,0.15);
+        }
+        .bazi-table th {
+            background: rgba(102,126,234,0.2); color: #ffd700; font-weight: normal;
+        }
+        .bazi-table td { background: rgba(255,255,255,0.03); }
+        .bazi-table .pillar-label { color: #aaa; font-size: 0.85em; }
+
+        /* 天干地支颜色 */
+        .gan-mu { color: #4ade80; }      /* 甲乙木 - 绿 */
+        .gan-huo { color: #f87171; }     /* 丙丁火 - 红 */
+        .gan-tu { color: #fbbf24; }      /* 戊己土 - 黄 */
+        .gan-jin { color: #e5e7eb; }     /* 庚辛金 - 白 */
+        .gan-shui { color: #60a5fa; }    /* 壬癸水 - 蓝 */
+
+        .zhi-mu { color: #4ade80; }
+        .zhi-huo { color: #f87171; }
+        .zhi-tu { color: #fbbf24; }
+        .zhi-jin { color: #e5e7eb; }
+        .zhi-shui { color: #60a5fa; }
+
+        .shishen {
+            font-size: 0.75em; color: #888; display: block; margin-top: 2px;
+        }
+        .shishen-label {
+            font-size: 0.7em; color: #a78bfa; display: block; margin-bottom: 2px;
+        }
+
+        .canggan { font-size: 0.8em; color: #999; }
+
+        .bazi-section {
+            margin: 25px 0; padding: 20px;
+            background: rgba(255,255,255,0.03); border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .bazi-section h4 {
+            color: #ffd700; margin-bottom: 15px; font-size: 1.1em;
+            border-left: 3px solid #ffd700; padding-left: 10px;
+        }
+
+        .wuxing-bar {
+            display: flex; align-items: center; gap: 10px; margin: 8px 0;
+        }
+        .wuxing-bar-label { width: 40px; text-align: right; font-size: 0.9em; }
+        .wuxing-bar-track {
+            flex: 1; height: 20px; background: rgba(255,255,255,0.1);
+            border-radius: 10px; overflow: hidden; position: relative;
+        }
+        .wuxing-bar-fill {
+            height: 100%; border-radius: 10px; transition: width 0.5s ease;
+            display: flex; align-items: center; justify-content: flex-end;
+            padding-right: 8px; font-size: 0.75em; color: #fff;
+        }
+        .wuxing-jin-fill { background: linear-gradient(90deg, #b8860b, #ffd700); }
+        .wuxing-mu-fill { background: linear-gradient(90deg, #166534, #4ade80); }
+        .wuxing-shui-fill { background: linear-gradient(90deg, #1e3a8a, #60a5fa); }
+        .wuxing-huo-fill { background: linear-gradient(90deg, #991b1b, #f87171); }
+        .wuxing-tu-fill { background: linear-gradient(90deg, #854d0e, #fbbf24); }
+
+        .dayun-table {
+            width: 100%; border-collapse: collapse; margin-top: 10px;
+        }
+        .dayun-table th, .dayun-table td {
+            padding: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .dayun-table th { background: rgba(102,126,234,0.2); color: #ffd700; }
+        .dayun-table td { background: rgba(255,255,255,0.03); }
+        .dayun-current { background: rgba(255,215,0,0.15) !important; }
+
+        .interpretation-text {
+            line-height: 2; color: #ddd; font-size: 0.95em;
+        }
+        .interpretation-text p { margin: 8px 0; }
+        .interpretation-text .highlight { color: #ffd700; font-weight: bold; }
+        .interpretation-text .good { color: #4ade80; }
+        .interpretation-text .bad { color: #f87171; }
+        .interpretation-text .neutral { color: #fbbf24; }
+
+        /* 六爻铜钱 */
+        .coin-container { display: flex; justify-content: center; gap: 30px; margin: 20px 0; }
+        .coin {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: linear-gradient(145deg, #ffd700, #b8860b);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2em; cursor: pointer; transition: transform 0.3s;
+            box-shadow: 0 4px 15px rgba(255,215,0,0.3); user-select: none;
+        }
+        .coin:hover { transform: scale(1.1); }
+        .coin.yang::after { content: "—"; color: #8b0000; font-weight: bold; }
+        .coin.yin::after { content: "- -"; color: #8b0000; font-weight: bold; }
+        .coin.unknown::after { content: "?"; color: #8b0000; }
+
+        .yao-display { font-family: monospace; font-size: 1.2em; line-height: 1.5; text-align: center; margin: 15px 0; }
+        .yao-yang { color: #ffd700; }
+        .yao-yin { color: #888; }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8em; }
+            .nav-tab { padding: 10px 15px; font-size: 0.9em; }
+            .coin { width: 60px; height: 60px; font-size: 1.5em; }
+            .bazi-table th, .bazi-table td { padding: 6px 10px; font-size: 0.9em; }
+        }
+    </style>
+<base target="_blank">
+<base target="_blank">
+</head>
+<body>
+    <div class="container">
+        <h1>☯ 全能易经算 ☯</h1>
+        <p class="subtitle">八字排盘 · 梅花易数 · 六爻占卜 · 拆字解卦 · 历史上的今天</p>
+
+        <div class="data-status">
+            <div class="status-item">
+                <span class="status-dot status-loading" id="city-status-dot"></span>
+                <span>城市数据: <span id="city-status-text">加载中...</span></span>
+            </div>
+            <div class="status-item">
+                <span class="status-dot status-loading" id="stroke-status-dot"></span>
+                <span>笔画数据: <span id="stroke-status-text">加载中...</span></span>
+            </div>
+            <div class="status-item">
+                <span class="status-dot status-loading" id="net-status-dot"></span>
+                <span>网络状态: <span id="net-status-text">检测中...</span></span>
+            </div>
+            <div class="status-item">
+                <span class="status-dot status-loading" id="cache-status-dot"></span>
+                <span>历史缓存: <span id="cache-status-text">检测中...</span></span>
+            </div>
+            <div>
+                <button class="upload-btn" onclick="document.getElementById('city-file').click()">上传城市Excel</button>
+                <button class="upload-btn" onclick="document.getElementById('stroke-file').click()">上传笔画Excel</button>
+                <input type="file" id="city-file" accept=".xlsx" onchange="handleFileUpload(this, 'city')">
+                <input type="file" id="stroke-file" accept=".xlsx" onchange="handleFileUpload(this, 'stroke')">
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('bazi')">八字排盘</button>
+            <button class="nav-tab" onclick="switchTab('meihua')">梅花易数</button>
+            <button class="nav-tab" onclick="switchTab('liuyao')">六爻占卜</button>
+            <button class="nav-tab" onclick="switchTab('chaizi')">拆字解卦</button>
+            
+            <button class="nav-tab need-net" onclick="switchTab('history')">历史上的今天 <span class="badge">联网</span></button>
+        </div>
+
+        <!-- 八字排盘面板 -->
+        <div class="panel active" id="panel-bazi">
+            <h2>🔮 八字排盘（真太阳时）</h2>
+            <div class="info-tip">
+                请输入出生信息，系统将自动根据城市经纬度计算真太阳时，排出专业八字命盘并附详细解说。
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>出生日期</label>
+                    <input type="date" id="bazi-date">
+                </div>
+                <div class="form-group">
+                    <label>出生时间</label>
+                    <input type="time" id="bazi-time" value="12:00">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group city-input-wrapper">
+                    <label>出生城市</label>
+                    <input type="text" id="bazi-city" placeholder="输入城市名，如：北京、上海、纽约..." autocomplete="off" oninput="showCitySuggestions(this)">
+                    <div class="city-suggestions" id="bazi-city-suggestions"></div>
+                </div>
+                <div class="form-group">
+                    <label>性别</label>
+                    <select id="bazi-gender">
+                        <option value="male">男</option>
+                        <option value="female">女</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row" id="manual-lonlat" style="display:none;">
+                <div class="form-group">
+                    <label>经度 (东经为正，西经为负)</label>
+                    <input type="number" id="bazi-lon" placeholder="如：116.4074" step="0.0001">
+                </div>
+                <div class="form-group">
+                    <label>纬度</label>
+                    <input type="number" id="bazi-lat" placeholder="如：39.9042" step="0.0001">
+                </div>
+                <div class="form-group">
+                    <label>时区</label>
+                    <input type="number" id="bazi-tz" placeholder="如：8" step="0.5">
+                </div>
+            </div>
+            <button class="btn-primary" id="btn-bazi" onclick="calcBazi()" disabled>开始排盘</button>
+
+            <div class="result-box" id="bazi-result">
+                <div id="bazi-content"></div>
+            </div>
+        </div>
+
+        <!-- 梅花易数面板 -->
+        <div class="panel" id="panel-meihua">
+            <h2>🌸 梅花易数</h2>
+            <div class="info-tip">
+                梅花易数起卦方法：输入问题或随意报数，系统将自动起卦解卦。
+            </div>
+            <div class="form-group">
+                <label>所问之事</label>
+                <input type="text" id="meihua-question" placeholder="如：今日财运如何？">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>上卦数（1-999）</label>
+                    <input type="number" id="meihua-up" min="1" max="999" placeholder="随机或自报">
+                </div>
+                <div class="form-group">
+                    <label>下卦数（1-999）</label>
+                    <input type="number" id="meihua-down" min="1" max="999" placeholder="随机或自报">
+                </div>
+                <div class="form-group">
+                    <label>动爻数（1-999）</label>
+                    <input type="number" id="meihua-dong" min="1" max="999" placeholder="随机或自报">
+                </div>
+            </div>
+            <button class="btn-primary" onclick="randomMeihua()">随机起数</button>
+            <button class="btn-primary" id="btn-meihua" onclick="calcMeihua()" disabled>起卦解卦</button>
+
+            <div class="result-box" id="meihua-result">
+                <h3>梅花易数卦象</h3>
+                <div class="content" id="meihua-content"></div>
+            </div>
+        </div>
+
+        <!-- 六爻面板 -->
+        <div class="panel" id="panel-liuyao">
+            <h2>⚡ 六爻占卜</h2>
+            <div class="info-tip">
+                六爻占卜：心中默念所问之事，点击三枚铜钱摇卦，共摇六次成卦。或输入三个数字直接起卦。
+            </div>
+            <div class="form-group">
+                <label>所问之事</label>
+                <input type="text" id="liuyao-question" placeholder="如：此次投资是否顺利？">
+            </div>
+            <div class="form-group">
+                <label>手动输入（可选）：直接输入三个数字（1-999）代替摇卦</label>
+                <div class="form-row">
+                    <input type="number" id="ly-num1" min="1" max="999" placeholder="第一数">
+                    <input type="number" id="ly-num2" min="1" max="999" placeholder="第二数">
+                    <input type="number" id="ly-num3" min="1" max="999" placeholder="第三数">
+                </div>
+            </div>
+            <div id="liuyao-coin-area">
+                <p style="text-align:center; color:#aaa; margin:10px 0;">第 <span id="liuyao-count" style="color:#ffd700; font-size:1.2em;">1</span> 次摇卦（共6次）</p>
+                <div class="coin-container">
+                    <div class="coin unknown" id="coin1" onclick="flipCoin(1)"></div>
+                    <div class="coin unknown" id="coin2" onclick="flipCoin(2)"></div>
+                    <div class="coin unknown" id="coin3" onclick="flipCoin(3)"></div>
+                </div>
+                <p style="text-align:center; color:#888; font-size:0.85em;">点击铜钱摇卦，或输入数字后点击"用数字起卦"</p>
+            </div>
+            <div style="text-align:center; margin:15px 0;">
+                <button class="btn-primary" onclick="resetLiuyao()">重新摇卦</button>
+                <button class="btn-primary" onclick="useNumbersForLiuyao()">用数字起卦</button>
+                <button class="btn-primary" id="btn-liuyao" onclick="calcLiuyao()" disabled>成卦解卦</button>
+            </div>
+            <div class="yao-display" id="liuyao-display"></div>
+
+            <div class="result-box" id="liuyao-result">
+                <h3>六爻卦象</h3>
+                <div class="content" id="liuyao-content"></div>
+            </div>
+        </div>
+
+        <!-- 拆字解卦面板 -->
+        <div class="panel" id="panel-chaizi">
+            <h2>✂️ 拆字解卦</h2>
+            <div class="info-tip">
+                梅花易数拆字法：输入一个汉字，系统按笔画数起卦解卦。若字库中无此字，请手动输入笔画数。
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>输入一个汉字</label>
+                    <input type="text" id="chaizi-char" maxlength="1" placeholder="如：福">
+                </div>
+                <div class="form-group">
+                    <label>所问之事（可选）</label>
+                    <input type="text" id="chaizi-question" placeholder="如：问事业">
+                </div>
+            </div>
+            <div class="form-row" id="chaizi-manual-stroke" style="display:none;">
+                <div class="form-group">
+                    <label>该字笔画数（字库未收录时填写）</label>
+                    <input type="number" id="chaizi-stroke" min="1" max="100" placeholder="笔画数">
+                </div>
+            </div>
+            <button class="btn-primary" id="btn-chaizi" onclick="calcChaizi()" disabled>拆字解卦</button>
+
+            <div class="result-box" id="chaizi-result">
+                <h3>拆字解卦结果</h3>
+                <div class="content" id="chaizi-content"></div>
+            </div>
+        </div>
+
+        <!-- 历史上的今天面板 -->
+        <div class="panel" id="panel-history">
+            <h2>📜 历史上的今天</h2>
+            <div class="info-tip" id="history-net-tip">
+                此功能需要联网获取历史事件。当前未检测到网络连接，请连接网络后重试。
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>选择日期</label>
+                    <input type="date" id="history-date">
+                </div>
+            </div>
+            <button class="btn-primary" id="btn-history" onclick="historyToday()" disabled>查询</button>
+
+            <div class="result-box" id="history-result">
+                <h3>历史事件</h3>
+                <div class="content" id="history-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h3 id="modal-title">提示</h3>
+            <p id="modal-text">内容</p>
+            <button class="modal-btn" onclick="closeModal()">确定</button>
+        </div>
+    </div>
+
+    <script>
+    // ==================== 全局数据 ====================
+    let citiesData = {};
+    let strokesData = {};
+    let gua64Data = {};
+    let citiesLoaded = false;
+    let strokesLoaded = false;
+    let netAvailable = false;
+
+    const TIAN_GAN = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+    const DI_ZHI = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+
+    const GAN_WUXING = {"甲": "木", "乙": "木", "丙": "火", "丁": "火", "戊": "土", "己": "土", "庚": "金", "辛": "金", "壬": "水", "癸": "水"};
+    const ZHI_WUXING = {"子": "水", "丑": "土", "寅": "木", "卯": "木", "辰": "土", "巳": "火", "午": "火", "未": "土", "申": "金", "酉": "金", "戌": "土", "亥": "水"};
+
+    const WUXING_COLOR = {
+        "木": "mu", "火": "huo", "土": "tu", "金": "jin", "水": "shui"
+    };
+
+    // 藏干
+    const CANG_GAN = {
+        "子": ["癸"], "丑": ["己", "癸", "辛"], "寅": ["甲", "丙", "戊"], "卯": ["乙"],
+        "辰": ["戊", "乙", "癸"], "巳": ["丙", "庚", "戊"], "午": ["丁", "己"], "未": ["己", "丁", "乙"],
+        "申": ["庚", "壬", "戊"], "酉": ["辛"], "戌": ["戊", "辛", "丁"], "亥": ["壬", "甲"]
+    };
+
+    // 纳音
+    const NAYIN = [
+        "海中金", "炉中火", "大林木", "路旁土", "剑锋金", "山头火",
+        "涧下水", "城头土", "白蜡金", "杨柳木", "泉中水", "屋上土",
+        "霹雳火", "松柏木", "长流水", "沙中金", "山下火", "平地木",
+        "壁上土", "金箔金", "覆灯火", "天河水", "大驿土", "钗钏金",
+        "桑柘木", "大溪水", "沙中土", "天上火", "石榴木", "大海水"
+    ];
+
+    // 十神关系
+    const SHI_SHEN = {
+        "甲": {同我: "比肩", 我同: "劫财", 我生: "食神", 生我: "伤官", 我克: "偏财", 克我: "正财", 克我官: "七杀", 我克官: "正官"},
+        "乙": {同我: "劫财", 我同: "比肩", 我生: "伤官", 生我: "食神", 我克: "正财", 克我: "偏财", 克我官: "正官", 我克官: "七杀"},
+        "丙": {同我: "比肩", 我同: "劫财", 我生: "食神", 生我: "伤官", 我克: "偏财", 克我: "正财", 克我官: "七杀", 我克官: "正官"},
+        "丁": {同我: "劫财", 我同: "比肩", 我生: "伤官", 生我: "食神", 我克: "正财", 克我: "偏财", 克我官: "正官", 我克官: "七杀"},
+        "戊": {同我: "比肩", 我同: "劫财", 我生: "食神", 生我: "伤官", 我克: "偏财", 克我: "正财", 克我官: "七杀", 我克官: "正官"},
+        "己": {同我: "劫财", 我同: "比肩", 我生: "伤官", 生我: "食神", 我克: "正财", 克我: "偏财", 克我官: "正官", 我克官: "七杀"},
+        "庚": {同我: "比肩", 我同: "劫财", 我生: "食神", 生我: "伤官", 我克: "偏财", 克我: "正财", 克我官: "七杀", 我克官: "正官"},
+        "辛": {同我: "劫财", 我同: "比肩", 我生: "伤官", 生我: "食神", 我克: "正财", 克我: "偏财", 克我官: "正官", 我克官: "七杀"},
+        "壬": {同我: "比肩", 我同: "劫财", 我生: "食神", 生我: "伤官", 我克: "偏财", 克我: "正财", 克我官: "七杀", 我克官: "正官"},
+        "癸": {同我: "劫财", 我同: "比肩", 我生: "伤官", 生我: "食神", 我克: "正财", 克我: "偏财", 克我官: "正官", 我克官: "七杀"}
+    };
+
+    // 空亡
+    const KONG_WANG = {
+        "甲子": "戌亥", "甲戌": "申酉", "甲申": "午未", "甲午": "辰巳",
+        "甲辰": "寅卯", "甲寅": "子丑",
+        "乙丑": "戌亥", "乙亥": "申酉", "乙酉": "午未", "乙未": "辰巳",
+        "乙巳": "寅卯", "乙卯": "子丑"
+    };
+
+    // 八卦
+    const GUA_DATA = {
+        1: {name: "乾", symbol: "☰", wuxing: "金", nature: "天", strokes: 3},
+        2: {name: "兑", symbol: "☱", wuxing: "金", nature: "泽", strokes: 3},
+        3: {name: "离", symbol: "☲", wuxing: "火", nature: "火", strokes: 3},
+        4: {name: "震", symbol: "☳", wuxing: "木", nature: "雷", strokes: 3},
+        5: {name: "巽", symbol: "☴", wuxing: "木", nature: "风", strokes: 3},
+        6: {name: "坎", symbol: "☵", wuxing: "水", nature: "水", strokes: 3},
+        7: {name: "艮", symbol: "☶", wuxing: "土", nature: "山", strokes: 3},
+        8: {name: "坤", symbol: "☷", wuxing: "土", nature: "地", strokes: 3}
+    };
+
+    const GUA64_NAMES = {
+        "1_1": "乾为天", "1_2": "天泽履", "1_3": "天火同人", "1_4": "天雷无妄", "1_5": "天风姤", "1_6": "天水讼", "1_7": "天山遁", "1_8": "天地否",
+        "2_1": "泽天夬", "2_2": "兑为泽", "2_3": "泽火革", "2_4": "泽雷随", "2_5": "泽风大过", "2_6": "泽水困", "2_7": "泽山咸", "2_8": "泽地萃",
+        "3_1": "火天大有", "3_2": "火泽睽", "3_3": "离为火", "3_4": "火雷噬嗑", "3_5": "火风鼎", "3_6": "火水未济", "3_7": "火山旅", "3_8": "火地晋",
+        "4_1": "雷天大壮", "4_2": "雷泽归妹", "4_3": "雷火丰", "4_4": "震为雷", "4_5": "雷风恒", "4_6": "雷水解", "4_7": "雷山小过", "4_8": "雷地豫",
+        "5_1": "风天小畜", "5_2": "风泽中孚", "5_3": "风火家人", "5_4": "风雷益", "5_5": "巽为风", "5_6": "风水涣", "5_7": "风山渐", "5_8": "风地观",
+        "6_1": "水天需", "6_2": "水泽节", "6_3": "水火既济", "6_4": "水雷屯", "6_5": "水风井", "6_6": "坎为水", "6_7": "水山蹇", "6_8": "水地比",
+        "7_1": "山天大畜", "7_2": "山泽损", "7_3": "山火贲", "7_4": "山雷颐", "7_5": "山风蛊", "7_6": "山水蒙", "7_7": "艮为山", "7_8": "山地剥",
+        "8_1": "地天泰", "8_2": "地泽临", "8_3": "地火明夷", "8_4": "地雷复", "8_5": "地风升", "8_6": "地水师", "8_7": "地山谦", "8_8": "坤为地"
+    };
+
+    // ==================== 初始化 ====================
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('bazi-date').value = today;
+        document.getElementById('history-date').value = today;
+        checkNetwork();
+        loadExcelData();
+    });
+
+    function checkNetwork() {
+        netAvailable = navigator.onLine;
+        updateNetStatus();
+        checkCacheStatus();
+        window.addEventListener('online', () => { netAvailable = true; updateNetStatus(); });
+        window.addEventListener('offline', () => { netAvailable = false; updateNetStatus(); });
+    }
+
+    async function checkCacheStatus() {
+        const dot = document.getElementById('cache-status-dot');
+        const text = document.getElementById('cache-status-text');
+        try {
+            const resp = await fetch('/api/history-cache?month=0&day=0');
+            if (resp.ok || resp.status === 404) {
+                // 404 means cache file exists but no data for 0/0, which is fine
+                dot.className = 'status-dot status-ok';
+                text.textContent = '已就绪';
+            } else {
+                throw new Error('Server error');
+            }
+        } catch (e) {
+            dot.className = 'status-dot status-err';
+            text.textContent = '未就绪 (需启动服务器)';
+        }
+    }
+
+    function updateNetStatus() {
+        const dot = document.getElementById('net-status-dot');
+        const text = document.getElementById('net-status-text');
+        if (netAvailable) {
+            dot.className = 'status-dot status-ok'; text.textContent = '已连接';
+            document.getElementById('btn-history').disabled = false;
+            document.getElementById('history-net-tip').style.display = 'none';
+        } else {
+            dot.className = 'status-dot status-err'; text.textContent = '未连接';
+            document.getElementById('btn-history').disabled = true;
+            document.getElementById('history-net-tip').style.display = 'block';
+        }
+    }
+
+    async function loadExcelData() {
+        // 检测 file:// 协议（直接双击打开HTML）
+        if (window.location.protocol === 'file:') {
+            console.log('[加载] file:// 协议，自动加载被浏览器安全策略阻止');
+            document.getElementById('city-status-dot').className = 'status-dot status-err';
+            document.getElementById('city-status-text').textContent = '需手动上传 (file协议)';
+            document.getElementById('stroke-status-dot').className = 'status-dot status-err';
+            document.getElementById('stroke-status-text').textContent = '需手动上传 (file协议)';
+            updateButtons();
+            return;
+        }
+
+        try { await loadCitiesFromURL('cities.xlsx'); }
+        catch(e) {
+            console.log('城市数据加载失败:', e);
+            document.getElementById('city-status-dot').className = 'status-dot status-err';
+            document.getElementById('city-status-text').textContent = '需手动上传 (加载失败)';
+        }
+
+        try { await loadStrokesFromURL('strokes.xlsx'); }
+        catch(e) {
+            console.log('笔画数据加载失败:', e);
+            document.getElementById('stroke-status-dot').className = 'status-dot status-err';
+            document.getElementById('stroke-status-text').textContent = '需手动上传 (加载失败)';
+        }
+
+        try { await loadGua64FromURL('gua64.xlsx'); }
+        catch(e) { console.log('64卦数据加载失败:', e); }
+
+        updateButtons();
+    }
+
+    async function loadGua64FromURL(url) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const data = new Uint8Array(await response.arrayBuffer());
+        const workbook = XLSX.read(data, {type: 'array'});
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet);
+        gua64Data = {};
+        json.forEach(row => {
+            const guaName = row['卦名'];
+            if (guaName) {
+                gua64Data[guaName] = {
+                    卦名: String(row['卦名'] || ''),
+                    上卦: String(row['上卦'] || ''),
+                    下卦: String(row['下卦'] || ''),
+                    卦象: String(row['卦象'] || ''),
+                    总体运势: String(row['总体运势'] || ''),
+                    学业: String(row['学业'] || ''),
+                    官运: String(row['官运'] || ''),
+                    财运: String(row['财运'] || ''),
+                    姻缘: String(row['姻缘'] || ''),
+                    寻人失物: String(row['寻人失物'] || ''),
+                    健康: String(row['健康'] || ''),
+                    事业: String(row['事业'] || ''),
+                    出行: String(row['出行'] || '')
+                };
+            }
+        });
+        console.log(`[加载] gua64.xlsx 成功: ${Object.keys(gua64Data).length} 卦`);
+    }
+
+    async function getGuaExplain(guaName) {
+        if (!guaName || guaName === '未知卦') return null;
+        // 1. 优先从内存读取
+        if (gua64Data && gua64Data[guaName]) return gua64Data[guaName];
+        // 2. 尝试从服务器API读取
+        try {
+            const response = await fetch(`/api/gua64?name=${encodeURIComponent(guaName)}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.found) return data;
+            }
+        } catch (e) { console.log('64卦API读取失败:', e); }
+        return null;
+    }
+
+    async function loadCitiesFromURL(url) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const data = new Uint8Array(await response.arrayBuffer());
+        const workbook = XLSX.read(data, {type: 'array'});
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet);
+        citiesData = {};
+        json.forEach(row => {
+            const city = row['城市'] || row['city'] || row['City'];
+            const lon = parseFloat(row['经度'] || row['lon'] || row['longitude']);
+            const lat = parseFloat(row['纬度'] || row['lat'] || row['latitude']);
+            const tz = parseFloat(row['时区'] || row['tz'] || row['timezone']);
+            if (city && !isNaN(lon) && !isNaN(lat)) {
+                citiesData[city] = {lon, lat, tz: isNaN(tz) ? Math.round(lon / 15) : tz};
+            }
+        });
+        citiesLoaded = true; updateCityStatus(); updateButtons();
+    }
+
+    async function loadStrokesFromURL(url) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const data = new Uint8Array(await response.arrayBuffer());
+        const workbook = XLSX.read(data, {type: 'array'});
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet);
+        strokesData = {};
+        json.forEach(row => {
+            const char = row['汉字'] || row['char'] || row['字'];
+            const count = parseInt(row['笔画数'] || row['stroke'] || row['strokes']);
+            if (char && !isNaN(count)) strokesData[char] = count;
+        });
+        strokesLoaded = true; updateStrokeStatus(); updateButtons();
+    }
+
+    function handleFileUpload(input, type) {
+        const file = input.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet);
+            if (type === 'city') {
+                citiesData = {};
+                json.forEach(row => {
+                    const city = row['城市'] || row['city'] || row['City'];
+                    const lon = parseFloat(row['经度'] || row['lon'] || row['longitude']);
+                    const lat = parseFloat(row['纬度'] || row['lat'] || row['latitude']);
+                    const tz = parseFloat(row['时区'] || row['tz'] || row['timezone']);
+                    if (city && !isNaN(lon) && !isNaN(lat)) citiesData[city] = {lon, lat, tz: isNaN(tz) ? Math.round(lon / 15) : tz};
+                });
+                citiesLoaded = true; updateCityStatus();
+                showModal('上传成功', `已加载 ${Object.keys(citiesData).length} 个城市数据`);
+            } else {
+                strokesData = {};
+                json.forEach(row => {
+                    const char = row['汉字'] || row['char'] || row['字'];
+                    const count = parseInt(row['笔画数'] || row['stroke'] || row['strokes']);
+                    if (char && !isNaN(count)) strokesData[char] = count;
+                });
+                strokesLoaded = true; updateStrokeStatus();
+                showModal('上传成功', `已加载 ${Object.keys(strokesData).length} 个汉字笔画数据`);
+            }
+            updateButtons();
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function updateCityStatus() {
+        const dot = document.getElementById('city-status-dot');
+        const text = document.getElementById('city-status-text');
+        if (citiesLoaded) { dot.className = 'status-dot status-ok'; text.textContent = `已加载 ${Object.keys(citiesData).length} 个城市`; }
+        else { dot.className = 'status-dot status-err'; text.textContent = '未加载 (请上传或运行服务器)'; }
+    }
+
+    function updateStrokeStatus() {
+        const dot = document.getElementById('stroke-status-dot');
+        const text = document.getElementById('stroke-status-text');
+        if (strokesLoaded) { dot.className = 'status-dot status-ok'; text.textContent = `已加载 ${Object.keys(strokesData).length} 个汉字`; }
+        else { dot.className = 'status-dot status-err'; text.textContent = '未加载 (请上传或运行服务器)'; }
+    }
+
+    function updateButtons() {
+        document.getElementById('btn-bazi').disabled = !citiesLoaded;
+        document.getElementById('btn-meihua').disabled = !strokesLoaded;
+        document.getElementById('btn-chaizi').disabled = !strokesLoaded;
+    }
+
+    function showCitySuggestions(input) {
+        const val = input.value.trim();
+        const box = document.getElementById('bazi-city-suggestions');
+        if (!val || Object.keys(citiesData).length === 0) { box.classList.remove('show'); return; }
+        const matches = Object.keys(citiesData).filter(c => c.includes(val)).slice(0, 10);
+        if (matches.length === 0) { box.classList.remove('show'); return; }
+        box.innerHTML = matches.map(c => `<div class="city-suggestion-item" onclick="selectCity('${c}')">${c}</div>`).join('');
+        box.classList.add('show');
+    }
+
+    function selectCity(city) {
+        document.getElementById('bazi-city').value = city;
+        document.getElementById('bazi-city-suggestions').classList.remove('show');
+        if (!citiesData[city]) {
+            document.getElementById('manual-lonlat').style.display = 'flex';
+            showModal('提示', `城市 "${city}" 不在数据库中，请手动输入经纬度和时区。`);
+        } else {
+            document.getElementById('manual-lonlat').style.display = 'none';
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.city-input-wrapper')) {
+            document.getElementById('bazi-city-suggestions').classList.remove('show');
+        }
+    });
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('panel-' + tabId).classList.add('active');
+    }
+
+    function showModal(title, text) {
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-text').textContent = text;
+        document.getElementById('modal').classList.add('show');
+    }
+    function closeModal() { document.getElementById('modal').classList.remove('show'); }
+
+    // ==================== 八字排盘核心 ====================
+    function calcBazi() {
+        const dateStr = document.getElementById('bazi-date').value;
+        const timeStr = document.getElementById('bazi-time').value;
+        const city = document.getElementById('bazi-city').value.trim();
+        const gender = document.getElementById('bazi-gender').value;
+
+        if (!dateStr || !timeStr) { showModal('提示', '请选择出生日期和时间'); return; }
+
+        let lon, lat, tz;
+        if (citiesData[city]) {
+            lon = citiesData[city].lon; lat = citiesData[city].lat; tz = citiesData[city].tz;
+        } else {
+            lon = parseFloat(document.getElementById('bazi-lon').value);
+            lat = parseFloat(document.getElementById('bazi-lat').value);
+            tz = parseFloat(document.getElementById('bazi-tz').value);
+            if (isNaN(lon) || isNaN(lat) || isNaN(tz)) {
+                showModal('提示', '城市不在数据库中，请手动输入经纬度和时区，或选择其他城市。'); return;
+            }
+        }
+
+        const dateTime = new Date(dateStr + 'T' + timeStr + ':00');
+        const trueSolar = calcTrueSolarTime(dateTime, lon, lat, tz);
+        const bazi = getBazi(trueSolar);
+        const shishen = calcShiShen(bazi);
+        const kongwang = calcKongWang(bazi);
+        const nayin = calcNayin(bazi);
+        const wuxingPower = calcWuxingPower(bazi);
+        const dayun = calcDayun(bazi, gender);
+        const interpretation = getBaziInterpretation(bazi, shishen, wuxingPower, gender);
+
+        // 生成美观的八字盘
+        let html = `
+            <div class="bazi-main-title">
+                <span class="gan-${WUXING_COLOR[GAN_WUXING[bazi.yearGan]]}">${bazi.yearGan}</span><span class="zhi-${WUXING_COLOR[ZHI_WUXING[bazi.yearZhi]]}">${bazi.yearZhi}</span>年
+                <span class="gan-${WUXING_COLOR[GAN_WUXING[bazi.monthGan]]}">${bazi.monthGan}</span><span class="zhi-${WUXING_COLOR[ZHI_WUXING[bazi.monthZhi]]}">${bazi.monthZhi}</span>月
+                <span class="gan-${WUXING_COLOR[GAN_WUXING[bazi.dayGan]]}">${bazi.dayGan}</span><span class="zhi-${WUXING_COLOR[ZHI_WUXING[bazi.dayZhi]]}">${bazi.dayZhi}</span>日
+                <span class="gan-${WUXING_COLOR[GAN_WUXING[bazi.hourGan]]}">${bazi.hourGan}</span><span class="zhi-${WUXING_COLOR[ZHI_WUXING[bazi.hourZhi]]}">${bazi.hourZhi}</span>时
+            </div>
+            <div class="bazi-kongwang">
+                <span class="kw-label">年空:</span><span class="kw-value">${kongwang.year}</span>
+                <span class="kw-label">月空:</span><span class="kw-value">${kongwang.month}</span>
+                <span class="kw-label">日空:</span><span class="kw-value">${kongwang.day}</span>
+                <span class="kw-label">时空:</span><span class="kw-value">${kongwang.hour}</span>
+            </div>
+
+            <div class="bazi-table-container">
+                <table class="bazi-table">
+                    <tr>
+                        <th></th>
+                        <th>年柱</th>
+                        <th>月柱</th>
+                        <th>日柱（日主）</th>
+                        <th>时柱</th>
+                    </tr>
+                    <tr>
+                        <td class="pillar-label">天干<br><span style="font-size:0.7em;color:#666">十神</span></td>
+                        <td>
+                            <span class="shishen-label">${shishen.yearGan}</span>
+                            <span class="gan-${WUXING_COLOR[GAN_WUXING[bazi.yearGan]]}" style="font-size:1.3em;font-weight:bold">${bazi.yearGan}</span>
+                        </td>
+                        <td>
+                            <span class="shishen-label">${shishen.monthGan}</span>
+                            <span class="gan-${WUXING_COLOR[GAN_WUXING[bazi.monthGan]]}" style="font-size:1.3em;font-weight:bold">${bazi.monthGan}</span>
+                        </td>
+                        <td style="background:rgba(255,215,0,0.1)">
+                            <span class="shishen-label">日主</span>
+                            <span class="gan-${WUXING_COLOR[GAN_WUXING[bazi.dayGan]]}" style="font-size:1.5em;font-weight:bold">${bazi.dayGan}</span>
+                        </td>
+                        <td>
+                            <span class="shishen-label">${shishen.hourGan}</span>
+                            <span class="gan-${WUXING_COLOR[GAN_WUXING[bazi.hourGan]]}" style="font-size:1.3em;font-weight:bold">${bazi.hourGan}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="pillar-label">地支<br><span style="font-size:0.7em;color:#666">十神</span></td>
+                        <td>
+                            <span class="shishen-label">${shishen.yearZhi}</span>
+                            <span class="zhi-${WUXING_COLOR[ZHI_WUXING[bazi.yearZhi]]}" style="font-size:1.3em;font-weight:bold">${bazi.yearZhi}</span>
+                            <div class="canggan">${getCangGanDisplay(bazi.yearZhi, bazi.dayGan)}</div>
+                        </td>
+                        <td>
+                            <span class="shishen-label">${shishen.monthZhi}</span>
+                            <span class="zhi-${WUXING_COLOR[ZHI_WUXING[bazi.monthZhi]]}" style="font-size:1.3em;font-weight:bold">${bazi.monthZhi}</span>
+                            <div class="canggan">${getCangGanDisplay(bazi.monthZhi, bazi.dayGan)}</div>
+                        </td>
+                        <td style="background:rgba(255,215,0,0.1)">
+                            <span class="shishen-label">${shishen.dayZhi}</span>
+                            <span class="zhi-${WUXING_COLOR[ZHI_WUXING[bazi.dayZhi]]}" style="font-size:1.3em;font-weight:bold">${bazi.dayZhi}</span>
+                            <div class="canggan">${getCangGanDisplay(bazi.dayZhi, bazi.dayGan)}</div>
+                        </td>
+                        <td>
+                            <span class="shishen-label">${shishen.hourZhi}</span>
+                            <span class="zhi-${WUXING_COLOR[ZHI_WUXING[bazi.hourZhi]]}" style="font-size:1.3em;font-weight:bold">${bazi.hourZhi}</span>
+                            <div class="canggan">${getCangGanDisplay(bazi.hourZhi, bazi.dayGan)}</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="pillar-label">纳音</td>
+                        <td style="font-size:0.85em;color:#aaa">${nayin.year}</td>
+                        <td style="font-size:0.85em;color:#aaa">${nayin.month}</td>
+                        <td style="font-size:0.85em;color:#ffd700">${nayin.day}</td>
+                        <td style="font-size:0.85em;color:#aaa">${nayin.hour}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="bazi-section">
+                <h4>🎯 五行力量分析</h4>
+                <div class="wuxing-bar">
+                    <span class="wuxing-bar-label" style="color:#ffd700">金</span>
+                    <div class="wuxing-bar-track"><div class="wuxing-bar-fill wuxing-jin-fill" style="width:${wuxingPower.jin * 10}%"><span style="position:absolute;right:5px;font-size:0.7em">${wuxingPower.jin}</span></div></div>
+                </div>
+                <div class="wuxing-bar">
+                    <span class="wuxing-bar-label" style="color:#4ade80">木</span>
+                    <div class="wuxing-bar-track"><div class="wuxing-bar-fill wuxing-mu-fill" style="width:${wuxingPower.mu * 10}%"><span style="position:absolute;right:5px;font-size:0.7em">${wuxingPower.mu}</span></div></div>
+                </div>
+                <div class="wuxing-bar">
+                    <span class="wuxing-bar-label" style="color:#60a5fa">水</span>
+                    <div class="wuxing-bar-track"><div class="wuxing-bar-fill wuxing-shui-fill" style="width:${wuxingPower.shui * 10}%"><span style="position:absolute;right:5px;font-size:0.7em">${wuxingPower.shui}</span></div></div>
+                </div>
+                <div class="wuxing-bar">
+                    <span class="wuxing-bar-label" style="color:#f87171">火</span>
+                    <div class="wuxing-bar-track"><div class="wuxing-bar-fill wuxing-huo-fill" style="width:${wuxingPower.huo * 10}%"><span style="position:absolute;right:5px;font-size:0.7em">${wuxingPower.huo}</span></div></div>
+                </div>
+                <div class="wuxing-bar">
+                    <span class="wuxing-bar-label" style="color:#fbbf24">土</span>
+                    <div class="wuxing-bar-track"><div class="wuxing-bar-fill wuxing-tu-fill" style="width:${wuxingPower.tu * 10}%"><span style="position:absolute;right:5px;font-size:0.7em">${wuxingPower.tu}</span></div></div>
+                </div>
+                <p style="margin-top:15px;color:#aaa;font-size:0.9em">
+                    <strong>五行喜忌：</strong><span style="color:#ffd700">${wuxingPower.xiJi}</span>
+                </p>
+            </div>
+
+            <div class="bazi-section">
+                <h4>📅 大运（十年一运）</h4>
+                <table class="dayun-table">
+                    <tr><th>起运年龄</th><th>大运干支</th><th>十神</th><th>五行</th><th>纳音</th></tr>
+                    ${dayun.map((d, i) => {
+                        const isCurrent = i === 3; // 简化：假设第4个大运为当前
+                        const ganShen = getShiShenName(bazi.dayGan, d.gan);
+                        const zhiShen = getShiShenName(bazi.dayGan, getCangGanMain(d.zhi));
+                        return `<tr class="${isCurrent ? 'dayun-current' : ''}">
+                            <td>${d.age}岁</td>
+                            <td><span class="gan-${WUXING_COLOR[GAN_WUXING[d.gan]]}">${d.gan}</span><span class="zhi-${WUXING_COLOR[ZHI_WUXING[d.zhi]]}">${d.zhi}</span></td>
+                            <td>${ganShen}/${zhiShen}</td>
+                            <td>${GAN_WUXING[d.gan]}/${ZHI_WUXING[d.zhi]}</td>
+                            <td style="font-size:0.85em">${getNayinByGanZhi(d.gan, d.zhi)}</td>
+                        </tr>`;
+                    }).join('')}
+                </table>
+                <p style="margin-top:10px;color:#888;font-size:0.85em">* 高亮行为当前大运（示例），实际需精确计算起运岁数</p>
+            </div>
+
+            <div class="bazi-section">
+                <h4>📖 命盘解说</h4>
+                <div class="interpretation-text">
+                    ${interpretation}
+                </div>
+            </div>
+
+            <div class="bazi-section">
+                <h4>📍 出生信息</h4>
+                <p style="color:#aaa;font-size:0.9em">
+                    公历：${dateStr} ${timeStr}<br>
+                    真太阳时：${trueSolar.toLocaleString('zh-CN')}<br>
+                    出生地点：${city || '自定义'}（经度 ${lon.toFixed(4)}°，纬度 ${lat.toFixed(4)}°）<br>
+                    性别：${gender === 'male' ? '男' : '女'}
+                </p>
+            </div>
+        `;
+
+        document.getElementById('bazi-content').innerHTML = html;
+        document.getElementById('bazi-result').classList.add('show');
+    }
+
+    function calcTrueSolarTime(dateTime, lon, lat, tz) {
+        const standardMeridian = tz * 15;
+        const lonDiff = lon - standardMeridian;
+        const minutesDiff = lonDiff * 4;
+        const dayOfYear = Math.floor((dateTime - new Date(dateTime.getFullYear(), 0, 0)) / 86400000);
+        const B = 2 * Math.PI * (dayOfYear - 81) / 364;
+        const eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+        return new Date(dateTime.getTime() + (minutesDiff + eot) * 60000);
+    }
+
+    function getBazi(dateTime) {
+        const year = dateTime.getFullYear();
+        const month = dateTime.getMonth() + 1;
+        const day = dateTime.getDate();
+        const hour = dateTime.getHours();
+
+        // 年柱
+        const yearGanIdx = (year - 4) % 10;
+        const yearZhiIdx = (year - 4) % 12;
+
+        // 月柱 - 基于节气计算月支
+        const dateVal = month * 100 + day;
+        let monthZhiIdx;
+        if (dateVal >= 204 && dateVal < 305) monthZhiIdx = 2;       // 立春(2/4)-惊蛰(3/5)前:寅
+        else if (dateVal >= 305 && dateVal < 405) monthZhiIdx = 3;  // 惊蛰-清明(4/5)前:卯
+        else if (dateVal >= 405 && dateVal < 505) monthZhiIdx = 4;  // 清明-立夏(5/5)前:辰
+        else if (dateVal >= 505 && dateVal < 605) monthZhiIdx = 5;  // 立夏-芒种(6/5)前:巳
+        else if (dateVal >= 605 && dateVal < 707) monthZhiIdx = 6;  // 芒种-小暑(7/7)前:午
+        else if (dateVal >= 707 && dateVal < 807) monthZhiIdx = 7;  // 小暑-立秋(8/7)前:未
+        else if (dateVal >= 807 && dateVal < 907) monthZhiIdx = 8;  // 立秋-白露(9/7)前:申
+        else if (dateVal >= 907 && dateVal < 1008) monthZhiIdx = 9; // 白露-寒露(10/8)前:酉
+        else if (dateVal >= 1008 && dateVal < 1107) monthZhiIdx = 10;// 寒露-立冬(11/7)前:戌
+        else if (dateVal >= 1107 && dateVal < 1207) monthZhiIdx = 11;// 立冬-大雪(12/7)前:亥
+        else if (dateVal >= 1207 || dateVal < 105) monthZhiIdx = 0; // 大雪-小寒(1/5)前:子
+        else monthZhiIdx = 1;                                          // 小寒-立春(2/4)前:丑
+
+        // 月干 - 五虎遁口诀
+        // 甲己之年丙作首, 乙庚之岁戊为头, 丙辛之岁寻庚起, 丁壬壬位顺行流, 戊癸之年甲寅头
+        const wuHuDun = [2, 4, 6, 8, 0, 2, 4, 6, 8, 0]; // 甲(0)->丙(2), 乙(1)->戊(4), 丙(2)->庚(6), 丁(3)->壬(8), 戊(4)->甲(0), ...
+        const monthGanBase = wuHuDun[yearGanIdx]; // 正月(寅)的月干
+        // 寅=2, 卯=3, 辰=4... 月干 = 正月月干 + (月支索引 - 2)
+        const monthGanIdx = (monthGanBase + (monthZhiIdx - 2) + 10) % 10;
+
+        // 日柱 - 使用1900-01-31甲辰日为基准
+        const baseDate = new Date(1900, 0, 31); // 1900年1月31日 = 甲辰日
+        const baseGanIdx = 0; // 甲
+        const baseZhiIdx = 4; // 辰
+        const diffDays = Math.floor((dateTime - baseDate) / 86400000);
+        const dayGanIdx = ((baseGanIdx + diffDays) % 10 + 10) % 10;
+        const dayZhiIdx = ((baseZhiIdx + diffDays) % 12 + 12) % 12;
+
+        // 时柱 - 根据日干和时辰
+        const hourZhi = Math.floor((hour + 1) / 2) % 12;
+        const dayGanIdxForHour = dayGanIdx % 5;
+        // 甲己日起甲子, 乙庚日起丙子, 丙辛日起戊子, 丁壬日起庚子, 戊癸日起壬子
+        const hourGanBase = [0, 2, 4, 6, 8][dayGanIdxForHour];
+        const hourGan = (hourGanBase + hourZhi) % 10;
+
+        return {
+            yearGan: TIAN_GAN[yearGanIdx],
+            yearZhi: DI_ZHI[yearZhiIdx],
+            monthGan: TIAN_GAN[monthGanIdx],
+            monthZhi: DI_ZHI[monthZhiIdx],
+            dayGan: TIAN_GAN[dayGanIdx],
+            dayZhi: DI_ZHI[dayZhiIdx],
+            hourGan: TIAN_GAN[hourGan],
+            hourZhi: DI_ZHI[hourZhi]
+        };
+    }
+    function calcShiShen(bazi) {
+        const dayGan = bazi.dayGan;
+        const dayGanWuxing = GAN_WUXING[dayGan];
+        const dayGanYang = [0, 2, 4, 6, 8].includes(TIAN_GAN.indexOf(dayGan)); // 甲丙戊庚壬为阳
+
+        function getShiShen(gan) {
+            const ganWuxing = GAN_WUXING[gan];
+            const ganYang = [0, 2, 4, 6, 8].includes(TIAN_GAN.indexOf(gan));
+
+            if (gan === dayGan) return ganYang === dayGanYang ? "比肩" : "劫财";
+
+            const wuxingSheng = {"金": "水", "水": "木", "木": "火", "火": "土", "土": "金"};
+            const wuxingKe = {"金": "木", "木": "土", "土": "水", "水": "火", "火": "金"};
+
+            if (wuxingSheng[dayGanWuxing] === ganWuxing) {
+                return ganYang === dayGanYang ? "食神" : "伤官";
+            }
+            if (wuxingSheng[ganWuxing] === dayGanWuxing) {
+                return ganYang === dayGanYang ? "偏印" : "正印";
+            }
+            if (wuxingKe[dayGanWuxing] === ganWuxing) {
+                return ganYang === dayGanYang ? "偏财" : "正财";
+            }
+            if (wuxingKe[ganWuxing] === dayGanWuxing) {
+                return ganYang === dayGanYang ? "七杀" : "正官";
+            }
+            return "";
+        }
+
+        return {
+            yearGan: getShiShen(bazi.yearGan),
+            yearZhi: getShiShen(CANG_GAN[bazi.yearZhi][0]),
+            monthGan: getShiShen(bazi.monthGan),
+            monthZhi: getShiShen(CANG_GAN[bazi.monthZhi][0]),
+            dayGan: "日主",
+            dayZhi: getShiShen(CANG_GAN[bazi.dayZhi][0]),
+            hourGan: getShiShen(bazi.hourGan),
+            hourZhi: getShiShen(CANG_GAN[bazi.hourZhi][0])
+        };
+    }
+
+    function getShiShenName(dayGan, targetGan) {
+        const dayGanWuxing = GAN_WUXING[dayGan];
+        const dayGanYang = [0, 2, 4, 6, 8].includes(TIAN_GAN.indexOf(dayGan));
+        const targetWuxing = GAN_WUXING[targetGan];
+        const targetYang = [0, 2, 4, 6, 8].includes(TIAN_GAN.indexOf(targetGan));
+
+        if (targetGan === dayGan) return targetYang === dayGanYang ? "比肩" : "劫财";
+
+        const wuxingSheng = {"金": "水", "水": "木", "木": "火", "火": "土", "土": "金"};
+        const wuxingKe = {"金": "木", "木": "土", "土": "水", "水": "火", "火": "金"};
+
+        if (wuxingSheng[dayGanWuxing] === targetWuxing) return targetYang === dayGanYang ? "食神" : "伤官";
+        if (wuxingSheng[targetWuxing] === dayGanWuxing) return targetYang === dayGanYang ? "偏印" : "正印";
+        if (wuxingKe[dayGanWuxing] === targetWuxing) return targetYang === dayGanYang ? "偏财" : "正财";
+        if (wuxingKe[targetWuxing] === dayGanWuxing) return targetYang === dayGanYang ? "七杀" : "正官";
+        return "";
+    }
+
+    function getCangGanMain(zhi) {
+        return CANG_GAN[zhi] ? CANG_GAN[zhi][0] : "";
+    }
+
+    function getCangGanDisplay(zhi, dayGan) {
+        const cang = CANG_GAN[zhi];
+        if (!cang) return "";
+        return cang.map(g => {
+            const shen = getShiShenName(dayGan, g);
+            const color = WUXING_COLOR[GAN_WUXING[g]];
+            return `<span class="gan-${color}">${g}</span><span style="font-size:0.7em;color:#888">(${shen})</span>`;
+        }).join(" ");
+    }
+
+    function calcKongWang(bazi) {
+        // 根据日柱干支查空亡
+        const dayGanIdx = TIAN_GAN.indexOf(bazi.dayGan);
+        const dayZhiIdx = DI_ZHI.indexOf(bazi.dayZhi);
+        const dayIdx = (dayGanIdx % 10) * 12 + dayZhiIdx; // 简化
+
+        // 甲子旬(0-9):戌亥, 甲戌旬(10-19):申酉, 甲申旬(20-29):午未, 甲午旬(30-39):辰巳, 甲辰旬(40-49):寅卯, 甲寅旬(50-59):子丑
+        const xun = Math.floor(dayGanIdx / 10) * 10; // 简化，实际应按60甲子计算
+        const kongMap = {
+            0: "戌亥", 10: "申酉", 20: "午未", 30: "辰巳", 40: "寅卯", 50: "子丑"
+        };
+        const dayKong = kongMap[xun] || "未知";
+
+        // 年柱、月柱、时柱的空亡根据各自干支计算
+        function getKong(gan, zhi) {
+            const gIdx = TIAN_GAN.indexOf(gan);
+            const x = Math.floor(gIdx / 10) * 10;
+            return kongMap[x] || "未知";
+        }
+
+        return {
+            year: getKong(bazi.yearGan, bazi.yearZhi),
+            month: getKong(bazi.monthGan, bazi.monthZhi),
+            day: dayKong,
+            hour: getKong(bazi.hourGan, bazi.hourZhi)
+        };
+    }
+
+    function calcNayin(bazi) {
+        function getNayin(gan, zhi) {
+            const gIdx = TIAN_GAN.indexOf(gan);
+            const zIdx = DI_ZHI.indexOf(zhi);
+            // 纳音计算：按60甲子对30纳音
+            const idx = ((gIdx % 2) * 30 + Math.floor(zIdx / 2)) % 30; // 简化
+            return NAYIN[idx] || "未知";
+        }
+        return {
+            year: getNayin(bazi.yearGan, bazi.yearZhi),
+            month: getNayin(bazi.monthGan, bazi.monthZhi),
+            day: getNayin(bazi.dayGan, bazi.dayZhi),
+            hour: getNayin(bazi.hourGan, bazi.hourZhi)
+        };
+    }
+
+    function getNayinByGanZhi(gan, zhi) {
+        const gIdx = TIAN_GAN.indexOf(gan);
+        const zIdx = DI_ZHI.indexOf(zhi);
+        const idx = ((gIdx % 2) * 30 + Math.floor(zIdx / 2)) % 30;
+        return NAYIN[idx] || "未知";
+    }
+
+    function calcWuxingPower(bazi) {
+        const counts = {jin: 0, mu: 0, shui: 0, huo: 0, tu: 0};
+
+        // 天干各算1分
+        [bazi.yearGan, bazi.monthGan, bazi.dayGan, bazi.hourGan].forEach(g => {
+            const w = GAN_WUXING[g];
+            if (w === '金') counts.jin += 1;
+            if (w === '木') counts.mu += 1;
+            if (w === '水') counts.shui += 1;
+            if (w === '火') counts.huo += 1;
+            if (w === '土') counts.tu += 1;
+        });
+
+        // 地支主气各算1分，藏干各算0.5分
+        [bazi.yearZhi, bazi.monthZhi, bazi.dayZhi, bazi.hourZhi].forEach(z => {
+            const w = ZHI_WUXING[z];
+            if (w === '金') counts.jin += 1;
+            if (w === '木') counts.mu += 1;
+            if (w === '水') counts.shui += 1;
+            if (w === '火') counts.huo += 1;
+            if (w === '土') counts.tu += 1;
+
+            const cang = CANG_GAN[z];
+            if (cang) {
+                cang.forEach((g, i) => {
+                    if (i === 0) return; // 主气已算
+                    const cw = GAN_WUXING[g];
+                    if (cw === '金') counts.jin += 0.5;
+                    if (cw === '木') counts.mu += 0.5;
+                    if (cw === '水') counts.shui += 0.5;
+                    if (cw === '火') counts.huo += 0.5;
+                    if (cw === '土') counts.tu += 0.5;
+                });
+            }
+        });
+
+        // 确定喜忌
+        const dayWuxing = GAN_WUXING[bazi.dayGan];
+        const dayYang = [0, 2, 4, 6, 8].includes(TIAN_GAN.indexOf(bazi.dayGan));
+
+        // 判断旺衰（简化）
+        const seasonWuxing = {
+            "寅": "木", "卯": "木", "辰": "土",
+            "巳": "火", "午": "火", "未": "土",
+            "申": "金", "酉": "金", "戌": "土",
+            "亥": "水", "子": "水", "丑": "土"
+        };
+        const monthWuxing = seasonWuxing[bazi.monthZhi];
+
+        let isWang = false;
+        if (dayWuxing === monthWuxing) isWang = true;
+        if (dayWuxing === '木' && (monthWuxing === '水' || monthWuxing === '木')) isWang = true;
+        if (dayWuxing === '火' && (monthWuxing === '木' || monthWuxing === '火')) isWang = true;
+        if (dayWuxing === '土' && (monthWuxing === '火' || monthWuxing === '土')) isWang = true;
+        if (dayWuxing === '金' && (monthWuxing === '土' || monthWuxing === '金')) isWang = true;
+        if (dayWuxing === '水' && (monthWuxing === '金' || monthWuxing === '水')) isWang = true;
+
+        let xiJi = "";
+        if (isWang) {
+            if (dayWuxing === '金') xiJi = "身旺，喜水木火，忌土金";
+            else if (dayWuxing === '木') xiJi = "身旺，喜火土金，忌水木";
+            else if (dayWuxing === '水') xiJi = "身旺，喜木火土，忌金水";
+            else if (dayWuxing === '火') xiJi = "身旺，喜土金水，忌火木";
+            else if (dayWuxing === '土') xiJi = "身旺，喜金水木，忌火土";
+        } else {
+            if (dayWuxing === '金') xiJi = "身弱，喜土金，忌水木火";
+            else if (dayWuxing === '木') xiJi = "身弱，喜水木，忌火土金";
+            else if (dayWuxing === '水') xiJi = "身弱，喜金水，忌木火土";
+            else if (dayWuxing === '火') xiJi = "身弱，喜木火，忌土金水";
+            else if (dayWuxing === '土') xiJi = "身弱，喜火土，忌金水木";
+        }
+
+        return {...counts, xiJi, isWang, dayWuxing};
+    }
+
+    function calcDayun(bazi, gender) {
+        const dayGanIdx = TIAN_GAN.indexOf(bazi.dayGan);
+        const dayGanYang = [0, 2, 4, 6, 8].includes(dayGanIdx);
+        const yearGanIdx = TIAN_GAN.indexOf(bazi.yearGan);
+        const yearGanYang = [0, 2, 4, 6, 8].includes(yearGanIdx);
+
+        // 阳年男、阴年女顺排；阴年男、阳年女逆排
+        const isForward = (yearGanYang && gender === 'male') || (!yearGanYang && gender === 'female');
+
+        const dayun = [];
+        for (let i = 1; i <= 8; i++) {
+            const offset = isForward ? i : -i;
+            const ganIdx = ((dayGanIdx + offset) % 10 + 10) % 10;
+            const zhiIdx = ((DI_ZHI.indexOf(bazi.monthZhi) + offset) % 12 + 12) % 12;
+            dayun.push({
+                age: 3 + (i - 1) * 10,
+                gan: TIAN_GAN[ganIdx],
+                zhi: DI_ZHI[zhiIdx]
+            });
+        }
+        return dayun;
+    }
+
+    function getBaziInterpretation(bazi, shishen, wuxingPower, gender) {
+        const dayGan = bazi.dayGan;
+        const dayWuxing = GAN_WUXING[dayGan];
+        const dayYang = [0, 2, 4, 6, 8].includes(TIAN_GAN.indexOf(dayGan));
+
+        // 日主性格
+        const personality = {
+            "甲": "甲木日主，如参天大树，正直仁慈，有领导才能，但有时过于固执。",
+            "乙": "乙木日主，如花草藤蔓，温柔细腻，善于变通，适应力强，但易优柔寡断。",
+            "丙": "丙火日主，如太阳之光，热情开朗，光明磊落，有感染力，但易急躁冲动。",
+            "丁": "丁火日主，如灯烛之光，温和内敛，心思缜密，有艺术天赋，但易多虑。",
+            "戊": "戊土日主，如城墙之土，厚重稳重，诚实守信，有包容力，但易保守固执。",
+            "己": "己土日主，如田园之土，温和谦逊，善于协调，有服务精神，但易随波逐流。",
+            "庚": "庚金日主，如刀剑之金，刚毅果断，有正义感，善于决断，但易刚愎自用。",
+            "辛": "辛金日主，如珠玉之金，精致细腻，外柔内刚，有审美力，但易敏感多疑。",
+            "壬": "壬水日主，如江河之水，智慧灵动，善于谋略，有开拓精神，但易变动不定。",
+            "癸": "癸水日主，如雨露之水，温柔聪慧，直觉敏锐，有灵性，但易多愁善感。"
+        };
+
+        // 格局分析
+        let geju = "";
+        const monthGanShen = shishen.monthGan;
+        const monthZhiShen = shishen.monthZhi;
+
+        if (monthGanShen === "正官" || monthZhiShen === "正官") geju = "正官格";
+        else if (monthGanShen === "七杀" || monthZhiShen === "七杀") geju = "七杀格";
+        else if (monthGanShen === "正印" || monthZhiShen === "正印") geju = "正印格";
+        else if (monthGanShen === "偏印" || monthZhiShen === "偏印") geju = "偏印格";
+        else if (monthGanShen === "正财" || monthZhiShen === "正财") geju = "正财格";
+        else if (monthGanShen === "偏财" || monthZhiShen === "偏财") geju = "偏财格";
+        else if (monthGanShen === "食神" || monthZhiShen === "食神") geju = "食神格";
+        else if (monthGanShen === "伤官" || monthZhiShen === "伤官") geju = "伤官格";
+        else geju = "普通格局";
+
+        // 事业分析
+        let career = "";
+        if (shishen.monthGan === "正官" || shishen.hourGan === "正官") {
+            career = "命带正官，适合从事管理、行政、公务员等稳定职业，有贵人提携。";
+        } else if (shishen.monthGan === "七杀" || shishen.hourGan === "七杀") {
+            career = "命带七杀，适合武职、技术、创业等挑战性工作，需制化得宜。";
+        } else if (shishen.monthGan === "偏财" || shishen.hourGan === "偏财") {
+            career = "命带偏财，适合经商、投资、销售等流动性强的行业，财运起伏较大。";
+        } else if (shishen.monthGan === "食神" || shishen.hourGan === "食神") {
+            career = "命带食神，适合文化、艺术、教育、餐饮等行业，有口福才华。";
+        } else {
+            career = "根据十神组合，适合发挥自身特长，脚踏实地发展事业。";
+        }
+
+        // 婚姻分析
+        let marriage = "";
+        if (gender === 'male') {
+            const cai = [shishen.yearZhi, shishen.monthZhi, shishen.dayZhi, shishen.hourZhi].filter(s => s === "正财" || s === "偏财");
+            if (cai.length >= 2) marriage = "财星多现，异性缘佳，但感情需专一，避免桃花过旺。";
+            else if (cai.length === 1) marriage = "财星一位，婚姻稳定，配偶贤淑。";
+            else marriage = "财星不显，晚婚为宜，宜主动拓展社交圈。";
+        } else {
+            const guan = [shishen.yearGan, shishen.monthGan, shishen.hourGan].filter(s => s === "正官" || s === "七杀");
+            if (guan.length >= 2) marriage = "官杀混杂，感情复杂，需明辨是非，避免多角关系。";
+            else if (guan.length === 1) marriage = "官星一位，婚姻稳定，配偶有能力。";
+            else marriage = "官星不显，晚婚为宜，宜提升自身魅力。";
+        }
+
+        // 健康分析
+        let health = "";
+        const maxWuxing = Object.entries(wuxingPower).filter(([k]) => ['jin','mu','shui','huo','tu'].includes(k))
+            .sort((a, b) => b[1] - a[1])[0];
+        const minWuxing = Object.entries(wuxingPower).filter(([k]) => ['jin','mu','shui','huo','tu'].includes(k))
+            .sort((a, b) => a[1] - b[1])[0];
+
+        const wuxingMap = {jin: "金", mu: "木", shui: "水", huo: "火", tu: "土"};
+        const wuxingOrgan = {
+            "金": "肺、呼吸系统、皮肤",
+            "木": "肝、胆、神经系统",
+            "水": "肾、膀胱、生殖系统",
+            "火": "心、小肠、血液循环",
+            "土": "脾、胃、消化系统"
+        };
+
+        health = `<span class="good">${wuxingMap[maxWuxing[0]]}旺</span>，${wuxingOrgan[wuxingMap[maxWuxing[0]]]}功能较强；` +
+                 `<span class="bad">${wuxingMap[minWuxing[0]]}弱</span>，需注意${wuxingOrgan[wuxingMap[minWuxing[0]]]}的保养。`;
+
+        return `
+            <p><span class="highlight">【日主性格】</span>${personality[dayGan] || ""}</p>
+            <p><span class="highlight">【格局分析】</span>月令${shishen.monthGan || shishen.monthZhi}，为<span class="good">${geju}</span>。${wuxingPower.isWang ? "日主得令，身旺有气。" : "日主失令，身弱需扶。"}</p>
+            <p><span class="highlight">【事业财运】</span>${career}</p>
+            <p><span class="highlight">【婚姻感情】</span>${marriage}</p>
+            <p><span class="highlight">【健康提示】</span>${health}</p>
+            <p><span class="highlight">【五行喜忌】</span>${wuxingPower.xiJi}</p>
+            <p><span class="neutral">【提示】</span>以上为基于八字排盘的简要分析，具体命理需结合大运流年综合判断。命理仅供参考，人生掌握在自己手中。</p>
+        `;
+    }
+
+    // ==================== 梅花易数 ====================
+    function randomMeihua() {
+        document.getElementById('meihua-up').value = Math.floor(Math.random() * 900) + 100;
+        document.getElementById('meihua-down').value = Math.floor(Math.random() * 900) + 100;
+        document.getElementById('meihua-dong').value = Math.floor(Math.random() * 900) + 100;
+    }
+
+    async function calcMeihua() {
+        const up = parseInt(document.getElementById('meihua-up').value);
+        const down = parseInt(document.getElementById('meihua-down').value);
+        const dong = parseInt(document.getElementById('meihua-dong').value);
+        if (!up || !down || !dong) { showModal('提示', '请输入三个数字'); return; }
+
+        const upGua = (up % 8) || 8;
+        const downGua = (down % 8) || 8;
+        const dongYao = (dong % 6) || 6;
+
+        const guaName = GUA64_NAMES[`${upGua}_${downGua}`] || "未知卦";
+        const upInfo = GUA_DATA[upGua];
+        const downInfo = GUA_DATA[downGua];
+
+        let bianGuaUp = upGua, bianGuaDown = downGua;
+        if (dongYao <= 3) {
+            const mask = [1, 2, 4][dongYao - 1];
+            bianGuaDown = ((bianGuaDown - 1) ^ mask) + 1;
+        } else {
+            const mask = [1, 2, 4][dongYao - 4];
+            bianGuaUp = ((bianGuaUp - 1) ^ mask) + 1;
+        }
+        const bianName = GUA64_NAMES[`${bianGuaUp}_${bianGuaDown}`] || "未知卦";
+
+        const ti = dongYao <= 3 ? downInfo : upInfo;
+        const yong = dongYao <= 3 ? upInfo : downInfo;
+
+        const wuxingSheng = {金: "水", 水: "木", 木: "火", 火: "土", 土: "金"};
+        const wuxingKe = {金: "木", 木: "土", 土: "水", 水: "火", 火: "金"};
+        let shengKe = "";
+        if (wuxingSheng[ti.wuxing] === yong.wuxing) shengKe = "用生体：吉，得助之象";
+        else if (wuxingSheng[yong.wuxing] === ti.wuxing) shengKe = "体生用：耗泄，需付出";
+        else if (wuxingKe[ti.wuxing] === yong.wuxing) shengKe = "体克用：吉，可控之象";
+        else if (wuxingKe[yong.wuxing] === ti.wuxing) shengKe = "用克体：凶，受制之象";
+        else shengKe = "体用比和：平，同类相助";
+
+        let html = `
+            <p><strong>本卦：</strong>${guaName} <span style="font-size:1.2em">${upInfo.symbol}${downInfo.symbol}</span></p>
+            <p><strong>上卦：</strong>${upInfo.name} (${upInfo.nature}, ${upInfo.wuxing})</p>
+            <p><strong>下卦：</strong>${downInfo.name} (${downInfo.nature}, ${downInfo.wuxing})</p>
+            <p><strong>动爻：</strong>第 ${dongYao} 爻</p>
+            <p><strong>变卦：</strong>${bianName}</p>
+            <hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">
+            <p><strong>体卦：</strong>${ti.name} (${ti.wuxing})</p>
+            <p><strong>用卦：</strong>${yong.name} (${yong.wuxing})</p>
+            <p><strong>体用关系：</strong><span class="highlight">${shengKe}</span></p>
+        `;
+
+        // 调用 gua64 解释
+        const guaExplain = await getGuaExplain(guaName);
+        if (guaExplain) {
+            html += `<hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">`;
+            html += `<p><strong style="color:#ffd700">📖 卦象详解</strong></p>`;
+            html += `<p><strong>总体运势：</strong>${guaExplain.总体运势}</p>`;
+            html += `<p><strong>💰 财运：</strong>${guaExplain.财运}</p>`;
+            html += `<p><strong>💕 姻缘：</strong>${guaExplain.姻缘}</p>`;
+            html += `<p><strong>📚 学业：</strong>${guaExplain.学业}</p>`;
+            html += `<p><strong>🏛️ 官运：</strong>${guaExplain.官运}</p>`;
+            html += `<p><strong>💼 事业：</strong>${guaExplain.事业}</p>`;
+            html += `<p><strong>🔍 寻人失物：</strong>${guaExplain.寻人失物}</p>`;
+            html += `<p><strong>🏥 健康：</strong>${guaExplain.健康}</p>`;
+            html += `<p><strong>🚗 出行：</strong>${guaExplain.出行}</p>`;
+        } else {
+            html += `<hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">`;
+            html += `<p style="color:#888">（未找到64卦解释数据，请确保 gua64.xlsx 文件存在并已加载）</p>`;
+        }
+
+        document.getElementById('meihua-content').innerHTML = html;
+        document.getElementById('meihua-result').classList.add('show');
+    }
+
+    // ==================== 六爻占卜 ====================
+    let liuyaoResults = [];
+    let liuyaoCount = 0;
+
+    function flipCoin(n) {
+        if (liuyaoCount >= 6) return;
+        const coin = document.getElementById('coin' + n);
+        const isYang = Math.random() > 0.5;
+        coin.className = 'coin ' + (isYang ? 'yang' : 'yin');
+        coin.dataset.value = isYang ? '3' : '2';
+    }
+
+    function useNumbersForLiuyao() {
+        const n1 = parseInt(document.getElementById('ly-num1').value);
+        const n2 = parseInt(document.getElementById('ly-num2').value);
+        const n3 = parseInt(document.getElementById('ly-num3').value);
+        if (!n1 || !n2 || !n3) { showModal('提示', '请输入三个数字'); return; }
+
+        liuyaoResults = [];
+        for (let i = 0; i < 6; i++) {
+            const sum = ((n1 + i) % 2) + ((n2 + i) % 2) + ((n3 + i) % 2) + 6;
+            const yao = sum % 2 === 0 ? '7' : '8';
+            liuyaoResults.push(yao);
+        }
+        liuyaoCount = 6;
+        displayLiuyao();
+        document.getElementById('btn-liuyao').disabled = false;
+    }
+
+    function resetLiuyao() {
+        liuyaoResults = []; liuyaoCount = 0;
+        document.getElementById('liuyao-count').textContent = '1';
+        document.getElementById('liuyao-display').innerHTML = '';
+        document.getElementById('liuyao-result').classList.remove('show');
+        document.getElementById('btn-liuyao').disabled = true;
+        for (let i = 1; i <= 3; i++) {
+            const coin = document.getElementById('coin' + i);
+            coin.className = 'coin unknown'; delete coin.dataset.value;
+        }
+    }
+
+    setInterval(() => {
+        if (liuyaoCount >= 6) return;
+        const c1 = document.getElementById('coin1').dataset.value;
+        const c2 = document.getElementById('coin2').dataset.value;
+        const c3 = document.getElementById('coin3').dataset.value;
+        if (c1 && c2 && c3) {
+            const sum = parseInt(c1) + parseInt(c2) + parseInt(c3);
+            let yao;
+            if (sum === 9) yao = '6'; else if (sum === 8) yao = '7'; else if (sum === 7) yao = '8'; else yao = '9';
+            liuyaoResults.push(yao); liuyaoCount++;
+            for (let i = 1; i <= 3; i++) {
+                const coin = document.getElementById('coin' + i);
+                coin.className = 'coin unknown'; delete coin.dataset.value;
+            }
+            document.getElementById('liuyao-count').textContent = liuyaoCount + 1;
+            displayLiuyao();
+            if (liuyaoCount >= 6) { document.getElementById('btn-liuyao').disabled = false; showModal('摇卦完成', '六次摇卦已完成，请点击"成卦解卦"查看结果。'); }
+        }
+    }, 500);
+
+    function displayLiuyao() {
+        let html = '';
+        const yaoNames = {'6': '老阴 ×', '7': '少阳 —', '8': '少阴 - -', '9': '老阳 ○'};
+        const yaoClass = {'6': 'yao-yin', '7': 'yao-yang', '8': 'yao-yin', '9': 'yao-yang'};
+        for (let i = 0; i < liuyaoResults.length; i++) {
+            const yao = liuyaoResults[i];
+            const line = 6 - i;
+            html += `<div class="${yaoClass[yao]}">第${line}爻：${yaoNames[yao]}</div>`;
+        }
+        document.getElementById('liuyao-display').innerHTML = html;
+    }
+
+    async function calcLiuyao() {
+        if (liuyaoResults.length !== 6) { showModal('提示', '请先完成六次摇卦'); return; }
+        const benGua = liuyaoResults.map(y => y === '7' || y === '9' ? 1 : 0);
+        const bianGua = liuyaoResults.map(y => {
+            if (y === '6') return 1; if (y === '9') return 0; return y === '7' ? 1 : 0;
+        });
+        const upBen = binToGua(benGua.slice(3, 6));
+        const downBen = binToGua(benGua.slice(0, 3));
+        const upBian = binToGua(bianGua.slice(3, 6));
+        const downBian = binToGua(bianGua.slice(0, 3));
+        const benName = GUA64_NAMES[`${upBen}_${downBen}`] || "未知卦";
+        const bianName = GUA64_NAMES[`${upBian}_${downBian}`] || "未知卦";
+        const dongYaoList = [];
+        for (let i = 0; i < 6; i++) if (liuyaoResults[i] === '6' || liuyaoResults[i] === '9') dongYaoList.push(6 - i);
+
+        let html = `
+            <p><strong>本卦：</strong>${benName}</p>
+            <p><strong>变卦：</strong>${bianName}</p>
+            <p><strong>动爻：</strong>${dongYaoList.length > 0 ? '第 ' + dongYaoList.join('、') + ' 爻' : '无动爻'}</p>
+            <hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">
+            <p><strong>卦象分析：</strong></p>
+            <p>本卦${benName}代表当前状况，变卦${bianName}代表未来趋势。</p>
+            <p>${dongYaoList.length === 0 ? "六爻皆静，局势稳定，宜守成。" : dongYaoList.length === 1 ? "一爻动，事情有单一变化因素。" : dongYaoList.length === 2 ? "两爻动，事情变化较为复杂。" : "多爻动，事情变化剧烈，需谨慎应对。"}</p>
+        `;
+
+        // 调用 gua64 解释
+        const guaExplain = await getGuaExplain(benName);
+        if (guaExplain) {
+            html += `<hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">`;
+            html += `<p><strong style="color:#ffd700">📖 卦象详解</strong></p>`;
+            html += `<p><strong>总体运势：</strong>${guaExplain.总体运势}</p>`;
+            html += `<p><strong>💰 财运：</strong>${guaExplain.财运}</p>`;
+            html += `<p><strong>💕 姻缘：</strong>${guaExplain.姻缘}</p>`;
+            html += `<p><strong>📚 学业：</strong>${guaExplain.学业}</p>`;
+            html += `<p><strong>🏛️ 官运：</strong>${guaExplain.官运}</p>`;
+            html += `<p><strong>💼 事业：</strong>${guaExplain.事业}</p>`;
+            html += `<p><strong>🔍 寻人失物：</strong>${guaExplain.寻人失物}</p>`;
+            html += `<p><strong>🏥 健康：</strong>${guaExplain.健康}</p>`;
+            html += `<p><strong>🚗 出行：</strong>${guaExplain.出行}</p>`;
+        } else {
+            html += `<hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">`;
+            html += `<p style="color:#888">（未找到64卦解释数据，请确保 gua64.xlsx 文件存在并已加载）</p>`;
+        }
+
+        document.getElementById('liuyao-content').innerHTML = html;
+        document.getElementById('liuyao-result').classList.add('show');
+    }
+
+    function binToGua(arr) {
+        let val = 0;
+        for (let i = 0; i < 3; i++) val = val * 2 + arr[i];
+        const map = {7: 1, 6: 2, 5: 3, 4: 4, 3: 5, 2: 6, 1: 7, 0: 8};
+        return map[val] || 1;
+    }
+
+    // ==================== 拆字解卦 ====================
+    document.getElementById('chaizi-char').addEventListener('input', function() {
+        const char = this.value.trim();
+        if (!char) return;
+        if (!strokesData[char]) document.getElementById('chaizi-manual-stroke').style.display = 'flex';
+        else document.getElementById('chaizi-manual-stroke').style.display = 'none';
+    });
+
+    async function calcChaizi() {
+        const char = document.getElementById('chaizi-char').value.trim();
+        const question = document.getElementById('chaizi-question').value.trim();
+        if (!char) { showModal('提示', '请输入一个汉字'); return; }
+
+        let strokeCount = strokesData[char];
+        if (!strokeCount) {
+            strokeCount = parseInt(document.getElementById('chaizi-stroke').value);
+            if (!strokeCount) { showModal('提示', '该字不在字库中，请手动输入笔画数'); return; }
+        }
+
+        const upNum = strokeCount;
+        const downNum = Math.ceil(strokeCount / 2);
+        const dongNum = strokeCount + (question ? question.length : 0);
+
+        const upGua = (upNum % 8) || 8;
+        const downGua = (downNum % 8) || 8;
+        const dongYao = (dongNum % 6) || 6;
+
+        const guaName = GUA64_NAMES[`${upGua}_${downGua}`] || "未知卦";
+        const upInfo = GUA_DATA[upGua];
+        const downInfo = GUA_DATA[downGua];
+        const ti = dongYao <= 3 ? downInfo : upInfo;
+        const yong = dongYao <= 3 ? upInfo : downInfo;
+
+        let html = `
+            <p><strong>所拆之字：</strong>${char}（${strokeCount}画）</p>
+            <p><strong>所问之事：</strong>${question || '未指定'}</p>
+            <hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">
+            <p><strong>本卦：</strong>${guaName} <span style="font-size:1.2em">${upInfo.symbol}${downInfo.symbol}</span></p>
+            <p><strong>上卦：</strong>${upInfo.name}（${upInfo.nature}，${upInfo.wuxing}）</p>
+            <p><strong>下卦：</strong>${downInfo.name}（${downInfo.nature}，${downInfo.wuxing}）</p>
+            <p><strong>动爻：</strong>第 ${dongYao} 爻</p>
+            <hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">
+            <p><strong>体卦：</strong>${ti.name}（${ti.wuxing}）</p>
+            <p><strong>用卦：</strong>${yong.name}（${yong.wuxing}）</p>
+        `;
+
+        // 调用 gua64 解释
+        const guaExplain = await getGuaExplain(guaName);
+        if (guaExplain) {
+            html += `<hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">`;
+            html += `<p><strong style="color:#ffd700">📖 卦象详解</strong></p>`;
+            html += `<p><strong>总体运势：</strong>${guaExplain.总体运势}</p>`;
+            html += `<p><strong>💰 财运：</strong>${guaExplain.财运}</p>`;
+            html += `<p><strong>💕 姻缘：</strong>${guaExplain.姻缘}</p>`;
+            html += `<p><strong>📚 学业：</strong>${guaExplain.学业}</p>`;
+            html += `<p><strong>🏛️ 官运：</strong>${guaExplain.官运}</p>`;
+            html += `<p><strong>💼 事业：</strong>${guaExplain.事业}</p>`;
+            html += `<p><strong>🔍 寻人失物：</strong>${guaExplain.寻人失物}</p>`;
+            html += `<p><strong>🏥 健康：</strong>${guaExplain.健康}</p>`;
+            html += `<p><strong>🚗 出行：</strong>${guaExplain.出行}</p>`;
+        } else {
+            html += `<hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">`;
+            html += `<p style="color:#888">（未找到64卦解释数据，请确保 gua64.xlsx 文件存在并已加载）</p>`;
+        }
+
+        document.getElementById('chaizi-content').innerHTML = html;
+        document.getElementById('chaizi-result').classList.add('show');
+    }
+
+    
+
+    // ==================== 历史上的今天 ====================
+    async function historyToday() {
+        const dateStr = document.getElementById('history-date').value;
+        if (!dateStr) { showModal('提示', '请选择日期'); return; }
+
+        const date = new Date(dateStr);
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+
+        document.getElementById('btn-history').disabled = true;
+        document.getElementById('btn-history').textContent = '查询中...';
+        document.getElementById('history-content').innerHTML = '<p style="color:#888">正在查询多个数据源...</p>';
+        document.getElementById('history-result').classList.add('show');
+
+        let events = null;
+        let source = '';
+        let triedSources = [];
+
+        // ========== 第一步：联网查询（优先级最高）==========
+        if (netAvailable) {
+            // 1. 中文维基百科
+            triedSources.push('中文维基百科');
+            document.getElementById('history-content').innerHTML = '<p style="color:#888">正在查询中文维基百科...</p>';
+            try {
+                const response = await fetch(
+                    `https://zh.wikipedia.org/api/rest_v1/feed/onthisday/events/${month}/${day}`,
+                    { timeout: 10000 }
+                );
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.events && data.events.length > 0) {
+                        events = data.events
+                            .filter(e => e.year && e.text)
+                            .sort((a, b) => a.year - b.year)
+                            .slice(0, 8)
+                            .map(e => ({ year: e.year, text: e.text }));
+                        source = 'wikipedia_zh';
+                        console.log(`[历史] 中文维基百科: ${month}月${day}日 ${events.length} 条事件`);
+                    }
+                }
+            } catch (e) { console.log('[历史] 中文维基百科查询失败:', e); }
+
+            // 2. 英文维基百科
+            if (!events) {
+                triedSources.push('英文维基百科');
+                document.getElementById('history-content').innerHTML = '<p style="color:#888">中文维基无数据，正在查询英文维基百科...</p>';
+                try {
+                    const response = await fetch(
+                        `https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/${month}/${day}`,
+                        { timeout: 10000 }
+                    );
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.events && data.events.length > 0) {
+                            events = data.events
+                                .filter(e => e.year && e.text)
+                                .sort((a, b) => a.year - b.year)
+                                .slice(0, 8)
+                                .map(e => ({ year: e.year, text: e.text }));
+                            source = 'wikipedia_en';
+                            console.log(`[历史] 英文维基百科: ${month}月${day}日 ${events.length} 条事件`);
+                        }
+                    }
+                } catch (e) { console.log('[历史] 英文维基百科查询失败:', e); }
+            }
+
+            // 3. Wikimedia 事件库
+            if (!events) {
+                triedSources.push('Wikimedia事件库');
+                document.getElementById('history-content').innerHTML = '<p style="color:#888">正在查询Wikimedia事件库...</p>';
+                try {
+                    const response = await fetch(
+                        `https://api.wikimedia.org/feed/v1/wikipedia/zh/onthisday/events/${month}/${day}`,
+                        { timeout: 10000 }
+                    );
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.events && data.events.length > 0) {
+                            events = data.events
+                                .filter(e => e.year && (e.text || e.pages))
+                                .sort((a, b) => a.year - b.year)
+                                .slice(0, 8)
+                                .map(e => ({ year: e.year, text: e.text || (e.pages && e.pages[0] && e.pages[0].extract) || '相关历史事件' }));
+                            source = 'wikimedia';
+                            console.log(`[历史] Wikimedia: ${month}月${day}日 ${events.length} 条事件`);
+                        }
+                    }
+                } catch (e) { console.log('[历史] Wikimedia查询失败:', e); }
+            }
+
+            // 4. Wikidata SPARQL
+            if (!events) {
+                triedSources.push('Wikidata知识库');
+                document.getElementById('history-content').innerHTML = '<p style="color:#888">正在查询Wikidata知识库...</p>';
+                try {
+                    const sparql = `SELECT ?event ?eventLabel ?date WHERE { ?event wdt:P31 wd:Q1190554. ?event wdt:P585 ?date. FILTER(MONTH(?date)=${month} && DAY(?date)=${day}). SERVICE wikibase:label { bd:serviceParam wikibase:language "zh,en". } } LIMIT 5`;
+                    const response = await fetch(
+                        `https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`,
+                        { timeout: 10000, headers: { 'Accept': 'application/sparql-results+json' } }
+                    );
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.results && data.results.bindings && data.results.bindings.length > 0) {
+                            events = data.results.bindings.map(b => ({
+                                year: parseInt(b.date.value.substring(0, 4)) || 0,
+                                text: b.eventLabel.value || '历史事件'
+                            })).filter(e => e.year !== 0).slice(0, 5);
+                            source = 'wikidata';
+                            console.log(`[历史] Wikidata: ${month}月${day}日 ${events.length} 条事件`);
+                        }
+                    }
+                } catch (e) { console.log('[历史] Wikidata查询失败:', e); }
+            }
+
+            // 如果联网查到数据，保存到本地缓存
+            if (events) {
+                try {
+                    await fetch('/api/save-history', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ month, day, events, source })
+                    });
+                    console.log(`[历史] 已保存 ${month}月${day}日 ${events.length} 条事件到本地缓存`);
+                } catch (saveErr) { console.log('[历史] 保存到本地缓存失败:', saveErr); }
+            }
+        }
+
+        // ========== 第二步：联网查不到，查本地Excel缓存 ==========
+        if (!events) {
+            triedSources.push('本地Excel缓存');
+            document.getElementById('history-content').innerHTML = '<p style="color:#888">联网查询无结果，正在搜索本地缓存...</p>';
+            try {
+                const cacheResp = await fetch(`/api/history-cache?month=${month}&day=${day}`);
+                if (cacheResp.ok) {
+                    const cacheData = await cacheResp.json();
+                    if (cacheData.found && cacheData.events && cacheData.events.length > 0) {
+                        events = cacheData.events;
+                        source = 'local';
+                        console.log(`[历史] 从本地Excel缓存读取 ${month}月${day}日 ${events.length} 条事件`);
+                    }
+                }
+            } catch (e) { console.log('[历史] 本地缓存读取失败:', e); }
+        }
+
+        // ========== 第三步：都没有，显示暂无记录 ==========
+        if (!events || events.length === 0) {
+            let html = `<p><strong>${month}月${day}日</strong> 历史上的今天</p>`;
+            html += `<hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">`;
+            html += `<p style="color:#888; text-align:center; padding:20px 0;">暂无该日期的历史记录</p>`;
+            html += `<p style="color:#666; font-size:0.8em; text-align:center;">已尝试: ${triedSources.join(' → ') || '无可用数据源'}</p>`;
+            if (!netAvailable) {
+                html += `<p style="color:#666; font-size:0.8em; text-align:center;">建议联网后重试，或预先在 history_cache.xlsx 中添加数据</p>`;
+            }
+            document.getElementById('history-content').innerHTML = html;
+            document.getElementById('btn-history').disabled = false;
+            document.getElementById('btn-history').textContent = '查询';
+            return;
+        }
+
+        // ========== 渲染结果 ==========
+        let html = `<p><strong>${month}月${day}日</strong> 历史上的今天`;
+        if (source === 'local') html += ` <span style="color:#00ff88;font-size:0.8em">[本地缓存]</span>`;
+        else if (source === 'wikipedia_zh') html += ` <span style="color:#60a5fa;font-size:0.8em">[中文维基百科]</span>`;
+        else if (source === 'wikipedia_en') html += ` <span style="color:#a78bfa;font-size:0.8em">[英文维基百科]</span>`;
+        else if (source === 'wikimedia') html += ` <span style="color:#4ade80;font-size:0.8em">[Wikimedia]</span>`;
+        else if (source === 'wikidata') html += ` <span style="color:#fbbf24;font-size:0.8em">[Wikidata]</span>`;
+        html += `</p>`;
+        html += `<hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">`;
+
+        events.forEach(e => {
+            const year = e.year;
+            const text = e.text || e.event;
+            let yearColor = '#ffd700';
+            if (year < 0) yearColor = '#ff6b6b';
+            else if (year < 1000) yearColor = '#fbbf24';
+            else if (year < 1800) yearColor = '#4ade80';
+            else if (year < 1900) yearColor = '#60a5fa';
+            else if (year < 2000) yearColor = '#a78bfa';
+            else yearColor = '#f472b6';
+
+            html += `<p><strong style="color:${yearColor}">${year > 0 ? year + '年' : Math.abs(year) + '年(公元前)'}</strong>：${text}</p>`;
+        });
+
+        html += `<hr style="border-color:rgba(255,255,255,0.1); margin:15px 0;">`;
+        if (source === 'local') {
+            html += `<p style="color:#666; font-size:0.8em">数据来源：本地Excel缓存 (history_cache.xlsx) | 已尝试: ${triedSources.join(' → ')}</p>`;
+        } else if (source === 'wikipedia_zh') {
+            html += `<p style="color:#666; font-size:0.8em">数据来源：中文维基百科 (Wikipedia) | 已自动保存到本地Excel缓存</p>`;
+        } else if (source === 'wikipedia_en') {
+            html += `<p style="color:#666; font-size:0.8em">数据来源：英文维基百科 (Wikipedia) | 已自动保存到本地Excel缓存</p>`;
+        } else if (source === 'wikimedia') {
+            html += `<p style="color:#666; font-size:0.8em">数据来源：Wikimedia事件库 | 已自动保存到本地Excel缓存</p>`;
+        } else if (source === 'wikidata') {
+            html += `<p style="color:#666; font-size:0.8em">数据来源：Wikidata知识库 | 已自动保存到本地Excel缓存</p>`;
+        }
+
+        document.getElementById('history-content').innerHTML = html;
+        document.getElementById('btn-history').disabled = false;
+        document.getElementById('btn-history').textContent = '查询';
+    }
+</script>
+</body>
+</html>
